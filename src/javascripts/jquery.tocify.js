@@ -107,7 +107,10 @@
 
             // **highlightDefault**: Accepts a boolean: true or false
             // Set's the first TOC item as active if no other TOC item is active.
-            highlightDefault: true
+            highlightDefault: true,
+
+            // Only allow showAndHideOnScroll if the css position property is 'fixed'
+            onlyShowAndHideOnFixedPosition: false
 
         },
 
@@ -342,6 +345,9 @@
 
             }));
 
+            if (self.hasClass("alwaysexpanded"))
+                item.addClass("alwaysexpanded");
+
             // Adds an HTML anchor tag before the currently traversed HTML element
             self.before($("<div/>", {
 
@@ -521,6 +527,18 @@
                     }
 
                 }
+            });
+
+            $(window).on("resize.tocify", function(){
+
+                if (self.options.onlyShowAndHideOnFixedPosition){
+
+                    if(self.cssPosition != self.element.css("position")){
+                        self.cssPosition = self.element.css("position");
+                        self.setOption("showAndHideOnScroll", self.cssPosition == "fixed" ? true : false );
+                    }
+                }
+
             });
 
             // Window scroll event handler
@@ -715,19 +733,34 @@
 
             }
 
+
             // If the current subheader parent element is a header
             if(elem.parent().is(".header")) {
 
                 // Hides all non-active sub-headers
-                self.hide($(".sub-header").not(elem));
+                self.hide(
+                    $(".sub-header")
+                        .not(elem)
+                        .not(
+                            $(".sub-header").prev(".alwaysexpanded").next()
+                        )
+                );
 
             }
 
             // If the current subheader parent element is not a header
             else {
 
-                // Hides all non-active sub-headers
-                self.hide($(".sub-header").not(elem.closest(".header").find(".sub-header").not(elem.siblings())));
+                self.hide(
+                    $(".sub-header")
+                        .not(
+                            elem.closest(".header").find(".sub-header")
+                                .not(elem.siblings())
+                        )
+                        .not(
+                            $(".sub-header").prev(".alwaysexpanded").next()
+                        )
+                );
 
             }
 
