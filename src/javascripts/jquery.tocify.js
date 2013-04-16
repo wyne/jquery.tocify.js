@@ -23,7 +23,7 @@
     $.widget("toc.tocify", {
 
         //Plugin version
-        version: "1.4.0",
+        version: "1.4.1",
 
         // These options will be used as defaults
         options: {
@@ -158,19 +158,35 @@
             // Binding to the Window load event to make sure the correct scrollTop is calculated
             $(window).load(function() {
 
-                // Sets the active TOC item
-                self._setActiveElement(true);
+                // Put the actions for this into a function that we can optionally delay
+                var doWork = function(){
 
-                // Once all animations on the page are complete, this callback function will be called
-                $("html, body").promise().done(function() {
+                    // Sets the active TOC item
+                    self._setActiveElement(true);
 
                     setTimeout(function() {
 
-                        self.extendPageScroll = false;
+                        // Once all animations on the page are complete, this callback function will be called
+                        $("html, body").promise().done(function() {
 
-                    },0);
+                            self.extendPageScroll = false;
 
-                });
+                        },0);
+
+                    });
+                };
+
+
+                // If SyntaxHighlighter is on this page, execute this after that's done
+                if ( typeof SyntaxHighlighter === "object" ){
+
+                    SyntaxHighlighter.complete(doWork);
+
+                } else {
+
+                    // Otherwise, just do it now.
+                    doWork();
+                }
 
             });
 
@@ -345,8 +361,8 @@
 
             }));
 
-            if (self.hasClass("alwaysexpanded"))
-                item.addClass("alwaysexpanded");
+            // Set class for headers that should stay expanded
+            if (self.hasClass("alwaysexpanded")){ item.addClass("alwaysexpanded"); }
 
             // Adds an HTML anchor tag before the currently traversed HTML element
             self.before($("<div/>", {
@@ -458,7 +474,7 @@
 
         },
 
-       // _setEventHandlers
+        // _setEventHandlers
         // ----------------
         //      Adds jQuery event handlers to the newly generated table of contents
         _setEventHandlers: function() {
@@ -472,7 +488,12 @@
                 $self,
 
                 // Instantiates a new variable that will be used to determine the smoothScroll animation time duration
-                duration;
+                duration,
+
+                win = $(window);
+
+            //Save list of anchors for quick lookup while scrolling
+            self.anchorList = $(self.options.context).find("div[data-unique]").next();
 
             // Event delegation that looks for any clicks on list item elements inside of the HTML element calling the plugin
             this.element.on("click.tocify", "li", function(event) {
@@ -529,7 +550,7 @@
                 }
             });
 
-            $(window).on("resize.tocify", function(){
+            win.on("resize.tocify", function(){
 
                 if (self.options.onlyShowAndHideOnFixedPosition){
 
@@ -542,7 +563,7 @@
             });
 
             // Window scroll event handler
-            $(window).on("scroll.tocify", function() {
+            win.on("scroll.tocify", function() {
 
                 // Once all animations on the page are complete, this callback function will be called
                 $("html, body").promise().done(function() {
@@ -550,10 +571,10 @@
                     // Local variables
 
                     // Stores how far the user has scrolled
-                    var winScrollTop = $(window).scrollTop(),
+                    var winScrollTop = win.scrollTop(),
 
                         // Stores the height of the window
-                        winHeight = $(window).height(),
+                        winHeight = win.height(),
 
                         // Stores the height of the document
                         docHeight = $(document).height(),
@@ -606,17 +627,19 @@
 
                     }
 
+
                     // The zero timeout ensures the following code is run after the scroll events
                     setTimeout(function() {
 
                         // Loops through each anchor tag on the page with a `name` attribute
-                        $(self.options.context).find("div[data-unique]").next().each(function() {
+                        self.anchorList.each(function() {
 
                             // If the user has scrolled to within x (the highlightOffset option) distance of the currently traversed anchor tag
                             if ((Math.abs($(this).offset().top - winScrollTop) < self.options.highlightOffset)) {
 
                                 // Stores the list item HTML element that corresponds to the currently traversed anchor tag
                                 elem = $('li[data-unique="' + $(this).prev("div[data-unique]").attr("data-unique") + '"]');
+                                console.log( $(this) );
 
                                 // If the `highlightOnScroll` option is true and a next element is found
                                 if(self.options.highlightOnScroll && elem.length) {
@@ -741,9 +764,7 @@
                 self.hide(
                     $(".sub-header")
                         .not(elem)
-                        .not(
-                            $(".sub-header").prev(".alwaysexpanded").next()
-                        )
+                        .not(self.alwaysExpandedHeaders)
                 );
 
             }
@@ -757,9 +778,7 @@
                             elem.closest(".header").find(".sub-header")
                                 .not(elem.siblings())
                         )
-                        .not(
-                            $(".sub-header").prev(".alwaysexpanded").next()
-                        )
+                        .not(self.alwaysExpandedHeaders)
                 );
 
             }
@@ -885,6 +904,8 @@
                 this.hoverClass = "tocify-hover";
 
             }
+
+            this.alwaysExpandedHeaders = $(".sub-header").prev(".alwaysexpanded").next();
 
             //Maintains chainability
             return this;
