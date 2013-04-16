@@ -270,6 +270,9 @@
 
             });
 
+
+            $(".force-expanded").next().show();
+
         },
 
         _setActiveElement: function(pageload) {
@@ -362,7 +365,7 @@
             }));
 
             // Set class for headers that should stay expanded
-            if (self.hasClass("alwaysexpanded")){ item.addClass("alwaysexpanded"); }
+            if (self.hasClass("alwaysexpanded")){ item.addClass("force-expanded"); }
 
             // Adds an HTML anchor tag before the currently traversed HTML element
             self.before($("<div/>", {
@@ -639,7 +642,6 @@
 
                                 // Stores the list item HTML element that corresponds to the currently traversed anchor tag
                                 elem = $('li[data-unique="' + $(this).prev("div[data-unique]").attr("data-unique") + '"]');
-                                console.log( $(this) );
 
                                 // If the `highlightOnScroll` option is true and a next element is found
                                 if(self.options.highlightOnScroll && elem.length) {
@@ -764,7 +766,7 @@
                 self.hide(
                     $(".sub-header")
                         .not(elem)
-                        .not(self.alwaysExpandedHeaders)
+                        .not(self.forceExpandedHeaders)
                 );
 
             }
@@ -778,7 +780,7 @@
                             elem.closest(".header").find(".sub-header")
                                 .not(elem.siblings())
                         )
-                        .not(self.alwaysExpandedHeaders)
+                        .not(self.forceExpandedHeaders)
                 );
 
             }
@@ -905,7 +907,7 @@
 
             }
 
-            this.alwaysExpandedHeaders = $(".sub-header").prev(".alwaysexpanded").next();
+            this.forceExpandedHeaders = $(".sub-header").prev(".force-expanded").next();
 
             //Maintains chainability
             return this;
